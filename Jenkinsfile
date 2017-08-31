@@ -1,5 +1,9 @@
 pipeline { 
   agent any
+  
+  environment {
+    NEXUS = credentials('nexus')
+  }
 
   stages {
     stage ('Checkout Code') {
@@ -9,12 +13,12 @@ pipeline {
     }
     stage ('Build app') {
       steps {
-        sh "echo echo 'Add build commands here'"
+        sh "echo 'Add build commands here'"
       }
     }
     stage('Nexus login') {
         steps {
-            sh 'sudo docker login localhost:5000 -u admin -p admin123'
+            sh "sudo docker login localhost:5000 -u $NEXUS_USR -p $NEXUS_PSW"
         }
     }
     stage('Docker build') {
