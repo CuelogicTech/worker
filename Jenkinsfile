@@ -1,11 +1,11 @@
 pipeline { 
   agent any
-  
-  environment {
-    NEXUS_URL = credentials('nexus_url')
-    NEXUS = credentials('nexus')
-  }
 
+  environment {
+    DOCKERHUB = credentials('dockerhub')
+    GIT_BRANCH = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+  }
+  
   stages {
     stage ('Checkout Code') {
       steps {
@@ -14,24 +14,25 @@ pipeline {
     }
     stage ('Build app') {
       steps {
-        sh "echo 'Add build commands here'"
+        sh "echo Add build commands here"
       }
     }
-    stage('Nexus login') {
+    stage('Dockerhub login') {
         steps {
-            sh "sudo docker login $NEXUS_URL -u $NEXUS_USR -p $NEXUS_PSW"
+            sh "sudo docker login -u $DOCKERHUB_USR -p $DOCKERHUB_PSW"
         }
     }
     stage('Docker build') {
         steps {
             sh 'env'
-            sh "sudo docker build -t $NEXUS_URL/${env.JOB_NAME}:${env.BUILD_NUMBER} ."
+            sh "sudo docker build -t cueops/${env.JOB_NAME}:${env.GIT_BRANCH}-${env.BUILD_NUMBER} ."
         }
     }
     stage('Docker push') {
         steps {
             sh 'env'
-            sh "sudo docker push $NEXUS_URL/${env.JOB_NAME}:${env.BUILD_NUMBER}"
+            sh "sudo docker push cueops/${env.JOB_NAME}:${env.GIT_BRANCH}-${env.BUILD_NUMBER}"
+            sh "curl -k http://34.200.248.216/api/v1/webhooks/codecommit -d '{"name": ${env.JOB_NAME}, "build": { "branch":${env.GIT_BRANCH}, "number":${env.BUILD_NUMBER}, "status" :"SUCCESS"} }' -H 'Content-Type: application/json' -H 'st2-api-key: OGVhYWExZDU1NDg3NDZmZGMyOTY5MTgxMDNjNzNkNjEzZTFlY2E4YTIxNTViOWYwMmZhZWM1NTgwYTE0Zjc3YQ'"
         }
     }
   }
