@@ -1,8 +1,10 @@
 pipeline { 
-  agent any
+  agent {
+      label 'jenkins-slave'
+  }
 
   environment {
-    DOCKERHUB = credentials('dockerhub')
+    DOCKERHUB = credentials("${params.PROJECT_NAME}-dockerhub")
     GIT_BRANCH = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
   }
   
@@ -22,7 +24,7 @@ pipeline {
 //    }
     stage ('Build app') {
       steps {
-        sh "echo Add build commands here"
+        echo "ProjectName: ${params.PROJECT_NAME}"
       }
     }
     stage('Dockerhub login') {
@@ -33,15 +35,15 @@ pipeline {
     stage('Docker build') {
         steps {
             sh 'env'
-          sh "sudo docker build -t ${env.DOCKERHUB_ORGANIZATION}/${env.JOB_NAME}:${env.GIT_BRANCH}-${env.BUILD_NUMBER} ."
+          sh "sudo docker build -t ${DOCKERHUB_USR}/${env.JOB_NAME}:${env.GIT_BRANCH}-${env.BUILD_NUMBER} ."
         }
     }
     stage('Docker push') {
         steps {
             sh 'env'
-          sh "sudo docker push ${env.DOCKERHUB_ORGANIZATION}/${env.JOB_NAME}:${env.GIT_BRANCH}-${env.BUILD_NUMBER}"
-            sh "curl -k https://${env.ST2_URL}/api/v1/webhooks/codecommit -d '{\"name\": \"${env.JOB_NAME}\", \"build\": {\"branch\": \"${env.GIT_BRANCH}\", \"status\": \"SUCCESS\", \"number\": \"${env.BUILD_ID}\"}}' -H 'Content-Type: application/json' -H 'st2-api-key: ${env.ST2_API_KEY}'"
-        }
+            sh "sudo docker push ${DOCKERHUB_USR}/${env.JOB_NAME}:${env.GIT_BRANCH}-${env.BUILD_NUMBER}"
+           sh "curl -k https://${env.ST2_URL}/api/v1/webhooks/codecommit -d '{\"name\": \"${env.JOB_NAME}\", \"build\": {\"branch\": \"${env.GIT_BRANCH}\", \"status\": \"SUCCESS\", \"number\": \"${env.BUILD_ID}\"}}' -H 'Content-Type: application/json' -H 'st2-api-key: ${env.ST2_API_KEY}'"
+          }
     }
   }
 //  post {
